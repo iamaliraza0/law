@@ -272,9 +272,31 @@ $user_name = $_SESSION['user_name'] ?? 'User';
         const role = document.getElementById('inviteRole').value;
         const message = document.getElementById('inviteMessage').value;
         
-        // Here you would typically send the invite via AJAX
-        alert('Invite sent to: ' + email + ' with role: ' + role);
-        closeInviteModal();
+        fetch('api/invite_user.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                role: role,
+                message: message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Invitation sent successfully to: ' + email);
+                closeInviteModal();
+                loadPendingInvites();
+            } else {
+                alert('Error sending invitation: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending invitation');
+        });
     });
 
     document.getElementById('teamForm').addEventListener('submit', function(e) {
@@ -282,9 +304,30 @@ $user_name = $_SESSION['user_name'] ?? 'User';
         const name = document.getElementById('teamName').value;
         const description = document.getElementById('teamDescription').value;
         
-        // Here you would typically create the team via AJAX
-        alert('Team created: ' + name);
-        closeTeamModal();
+        fetch('api/create_team.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Team created successfully: ' + name);
+                closeTeamModal();
+                loadTeams();
+            } else {
+                alert('Error creating team: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error creating team');
+        });
     });
 
     // Search functionality
@@ -292,5 +335,172 @@ $user_name = $_SESSION['user_name'] ?? 'User';
         const searchTerm = e.target.value.toLowerCase();
         // Implement search logic here
         console.log('Searching for:', searchTerm);
+    });
+
+    function loadPendingInvites() {
+        fetch('api/get_invitations.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePendingInvitesTab(data.invitations);
+                }
+            })
+            .catch(error => console.error('Error loading invitations:', error));
+    }
+
+    function loadTeams() {
+        fetch('api/get_teams.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateTeamsTab(data.teams);
+                }
+            })
+            .catch(error => console.error('Error loading teams:', error));
+    }
+
+    function updatePendingInvitesTab(invitations) {
+        const pendingContent = document.getElementById('pendingContent');
+        
+        if (invitations.length === 0) {
+            pendingContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-sm p-8 text-center">
+                    <i class="fas fa-envelope text-4xl text-gray-300 mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No pending invites</h3>
+                    <p class="text-gray-500 mb-4">Invite team members to collaborate on legal documents</p>
+                    <button onclick="openInviteModal()" class="text-blue-600 hover:text-blue-700 font-medium">
+                        <i class="fas fa-plus mr-2"></i>Invite user
+                    </button>
+                </div>
+            `;
+        } else {
+            let invitesHtml = `
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div class="col-span-4">Email</div>
+                            <div class="col-span-2">Role</div>
+                            <div class="col-span-3">Sent</div>
+                            <div class="col-span-2">Status</div>
+                            <div class="col-span-1"></div>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-gray-200">
+            `;
+            
+            invitations.forEach(invite => {
+                invitesHtml += `
+                    <div class="px-6 py-4 hover:bg-gray-50">
+                        <div class="grid grid-cols-12 gap-4 items-center">
+                            <div class="col-span-4 text-sm font-medium text-gray-900">${invite.email}</div>
+                            <div class="col-span-2 text-sm text-gray-900">${invite.role}</div>
+                            <div class="col-span-3 text-sm text-gray-900">${new Date(invite.created_at).toLocaleDateString()}</div>
+                            <div class="col-span-2">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${invite.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+                                    ${invite.status}
+                                </span>
+                            </div>
+                            <div class="col-span-1 text-right">
+                                <button onclick="resendInvite(${invite.id})" class="text-blue-600 hover:text-blue-700 text-sm">
+                                    Resend
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            invitesHtml += `
+                    </div>
+                </div>
+            `;
+            
+            pendingContent.innerHTML = invitesHtml;
+        }
+    }
+
+    function updateTeamsTab(teams) {
+        const teamsContent = document.getElementById('teamsContent');
+        
+        if (teams.length === 0) {
+            teamsContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow-sm p-8 text-center">
+                    <i class="fas fa-users text-4xl text-gray-300 mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No teams created</h3>
+                    <p class="text-gray-500 mb-4">Create teams to organize users and manage permissions</p>
+                    <button onclick="openTeamModal()" class="text-blue-600 hover:text-blue-700 font-medium">
+                        <i class="fas fa-plus mr-2"></i>Create team
+                    </button>
+                </div>
+            `;
+        } else {
+            let teamsHtml = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            `;
+            
+            teams.forEach(team => {
+                teamsHtml += `
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-purple-600 text-xl"></i>
+                            </div>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                ${team.role}
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">${team.name}</h3>
+                        <p class="text-gray-600 text-sm mb-4">${team.description || 'No description'}</p>
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>${team.member_count} members</span>
+                            <span>Created ${new Date(team.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            teamsHtml += `</div>`;
+            teamsContent.innerHTML = teamsHtml;
+        }
+    }
+
+    function resendInvite(inviteId) {
+        // Implement resend functionality
+        alert('Resend invite functionality will be implemented.');
+    }
+
+    // Load data when switching tabs
+    function switchTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'border-black', 'text-gray-900');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Show selected tab content
+        document.getElementById(tabName + 'Content').classList.remove('hidden');
+        
+        // Add active class to selected tab
+        const activeTab = document.getElementById(tabName + 'Tab');
+        activeTab.classList.add('active', 'border-black', 'text-gray-900');
+        activeTab.classList.remove('border-transparent', 'text-gray-500');
+        
+        // Load data for specific tabs
+        if (tabName === 'pending') {
+            loadPendingInvites();
+        } else if (tabName === 'teams') {
+            loadTeams();
+        }
+    }
+
+    // Load initial data
+    document.addEventListener('DOMContentLoaded', function() {
+        loadPendingInvites();
+        loadTeams();
     });
 </script>

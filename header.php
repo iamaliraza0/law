@@ -99,7 +99,7 @@ $user_name = $_SESSION['user_name'] ?? 'User';
                     <div id="repository-submenu" class="ml-6 mt-2 space-y-1">
                         <a href="#" class="block py-1 text-sm text-gray-600 hover:text-blue-600">Folders</a>
                         <a href="documents.php" class="block py-1 text-sm text-gray-600 hover:text-blue-600">All documents</a>
-                        <a href="#" class="block py-1 text-sm text-gray-600 hover:text-blue-600">Template drafts</a>
+                        <a href="my-templates.php" class="block py-1 text-sm text-gray-600 hover:text-blue-600">My Templates</a>
                     </div>
                 </div>
                 <a href="insights.php" class="sidebar-item flex items-center px-6 py-3 text-gray-700">
@@ -113,6 +113,10 @@ $user_name = $_SESSION['user_name'] ?? 'User';
                 <a href="templates.php" class="sidebar-item flex items-center px-6 py-3 text-gray-700">
                     <i class="fas fa-file-alt mr-3"></i>
                     Templates
+                </a>
+                <a href="ai-conversations.php" class="sidebar-item flex items-center px-6 py-3 text-gray-700">
+                    <i class="fas fa-robot mr-3"></i>
+                    AI Conversations
                 </a>
                 <div class="px-6 py-2">
                     <div class="flex items-center justify-between cursor-pointer" onclick="toggleSubmenu('settings')">

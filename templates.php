@@ -74,7 +74,7 @@ $user_name = $_SESSION['user_name'] ?? 'User';
                     </div>
                     <div class="flex justify-end space-x-3 mt-6">
                         <button onclick="closeTemplateModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Close</button>
-                        <button onclick="showComingSoon('Use Template')" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <button onclick="useSelectedTemplate()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                             <i class="fas fa-file-plus mr-2"></i>Use Template
                         </button>
                     </div>
@@ -187,6 +187,7 @@ $user_name = $_SESSION['user_name'] ?? 'User';
         ];
 
         let currentFilter = 'all';
+        let selectedTemplate = null;
 
         function toggleSubmenu(id) {
             const submenu = document.getElementById(id + '-submenu');
@@ -280,7 +281,7 @@ $user_name = $_SESSION['user_name'] ?? 'User';
                     
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <span>Updated ${new Date(template.lastUpdated).toLocaleDateString()}</span>
-                        <button onclick="event.stopPropagation(); showComingSoon('Use Template')" class="text-blue-600 hover:text-blue-700 font-medium">
+                        <button onclick="event.stopPropagation(); quickUseTemplate(${template.id}, '${template.title}')" class="text-blue-600 hover:text-blue-700 font-medium">
                             Use Template
                         </button>
                     </div>
@@ -295,6 +296,7 @@ $user_name = $_SESSION['user_name'] ?? 'User';
             const title = document.getElementById('modalTitle');
             const content = document.getElementById('templateContent');
             
+            selectedTemplate = template;
             title.textContent = template.title;
             
             content.innerHTML = `
@@ -354,10 +356,79 @@ $user_name = $_SESSION['user_name'] ?? 'User';
 
         function closeTemplateModal() {
             document.getElementById('templateModal').classList.add('hidden');
+            selectedTemplate = null;
         }
 
-        function showComingSoon(feature) {
-            alert(feature + ' functionality will be implemented in the next phase.');
+        function useSelectedTemplate() {
+            if (!selectedTemplate) return;
+            
+            const templateName = prompt('Enter a name for your template:', selectedTemplate.title + ' - Custom');
+            if (!templateName) return;
+            
+            const data = {
+                template_id: selectedTemplate.id,
+                document_name: templateName,
+                content: '' // Will use default content
+            };
+            
+            fetch('api/use_template.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Template saved to your templates!');
+                    closeTemplateModal();
+                    // Optionally redirect to my-templates page
+                    if (confirm('Would you like to view your templates?')) {
+                        window.location.href = 'my-templates.php';
+                    }
+                } else {
+                    alert('Error saving template: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving template');
+            });
+        }
+
+        function quickUseTemplate(templateId, templateTitle) {
+            const templateName = prompt('Enter a name for your template:', templateTitle + ' - Custom');
+            if (!templateName) return;
+            
+            const data = {
+                template_id: templateId,
+                document_name: templateName,
+                content: ''
+            };
+            
+            fetch('api/use_template.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Template saved to your templates!');
+                    if (confirm('Would you like to view your templates?')) {
+                        window.location.href = 'my-templates.php';
+                    }
+                } else {
+                    alert('Error saving template: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving template');
+            });
         }
 
         // Search functionality
